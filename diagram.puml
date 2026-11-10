@@ -1,0 +1,163 @@
+@startuml
+title Travel Itinerary Planner - Multi-Pattern Architecture (AITU Final Project)
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+' ==============================================================================
+' STUDENT 1 PACKAGES (Creational & Structural Facade)
+' ==============================================================================
+package "Student 1: Builder Pattern" #E8F8F5 {
+    class TripItineraryBuilder {
+        - id: String
+        - tripName: String
+        - traveler: Traveler
+        - origin: Location
+        - destination: Location
+        - startDate: LocalDate
+        - endDate: LocalDate
+        - budgetLimit: double
+        - bookings: List<BookingItem>
+        + setDestination(...)
+        + setDateRange(...)
+        + setBudgetLimit(...)
+        + addBooking(item: BookingItem)
+        + build(): TripItinerary
+    }
+
+    class TripItinerary <<immutable>> {
+        - id: String
+        - tripName: String
+        - traveler: Traveler
+        - totalCost: double
+        + isWithinBudget(): boolean
+        + getTotalCost(): double
+    }
+
+    TripItineraryBuilder ..> TripItinerary : constructs
+}
+
+package "Student 1: Factory Method Pattern" #EBF5FB {
+    interface BookingItem {
+        + getId(): String
+        + getTitle(): String
+        + getCost(): double
+        + confirm(): void
+        + cancel(): void
+    }
+
+    class FlightBookingItem implements BookingItem
+    class HotelBookingItem implements BookingItem
+    class ActivityBookingItem implements BookingItem
+
+    abstract class BookingFactory {
+        + {abstract} createBooking(...): BookingItem
+    }
+
+    class FlightBookingFactory extends BookingFactory {
+        + createBooking(...): BookingItem
+    }
+
+    class HotelBookingFactory extends BookingFactory {
+        + createBooking(...): BookingItem
+    }
+
+    class ActivityBookingFactory extends BookingFactory {
+        + createBooking(...): BookingItem
+    }
+
+    FlightBookingFactory ..> FlightBookingItem : instantiates
+    HotelBookingFactory ..> HotelBookingItem : instantiates
+    ActivityBookingFactory ..> ActivityBookingItem : instantiates
+    TripItinerary o-- BookingItem : contains
+}
+
+package "Student 1: Facade Pattern" #FEF9E7 {
+    class TravelBookingFacade {
+        - flightSubsystem: FlightSubsystem
+        - hotelSubsystem: HotelSubsystem
+        - paymentSubsystem: PaymentSubsystem
+        - insuranceSubsystem: InsuranceSubsystem
+        + bookEntireTrip(itinerary: TripItinerary, payment: PaymentDetails): BookingResult
+        + cancelEntireTrip(itinerary: TripItinerary, payment: PaymentDetails): boolean
+    }
+
+    class FlightSubsystem
+    class HotelSubsystem
+    class PaymentSubsystem
+    class InsuranceSubsystem
+
+    TravelBookingFacade --> FlightSubsystem
+    TravelBookingFacade --> HotelSubsystem
+    TravelBookingFacade --> PaymentSubsystem
+    TravelBookingFacade --> InsuranceSubsystem
+    TravelBookingFacade ..> TripItinerary : checks out
+}
+
+' ==============================================================================
+' STUDENT 2 PACKAGES (Structural Adapter & Behavioral Strategy / Observer)
+' ==============================================================================
+package "Student 2: Adapter Pattern" #FDEDEC {
+    interface FlightSearchProvider <<Target>> {
+        + searchAvailableFlights(from: String, to: String, date: LocalDate): List<FlightOption>
+    }
+
+    class AmadeusFlightAdapter <<Adapter>> implements FlightSearchProvider {
+        - legacyApi: LegacyAmadeusFlightApi
+        + searchAvailableFlights(...)
+    }
+
+    class LegacyAmadeusFlightApi <<Adaptee>> {
+        + lookupSchedulesRawXml(origin: String, dest: String, dateIso: String): List<AmadeusRawFlightData>
+    }
+
+    AmadeusFlightAdapter --> LegacyAmadeusFlightApi : wraps & translates
+}
+
+package "Student 2: Strategy Pattern" #F4ECF7 {
+    interface RouteOptimizationStrategy <<Strategy>> {
+        + optimizeRoute(from: Location, to: Location, items: List<BookingItem>, budget: double): OptimizedPlan
+        + getName(): String
+    }
+
+    class FastestRouteStrategy implements RouteOptimizationStrategy
+    class CheapestRouteStrategy implements RouteOptimizationStrategy
+    class ScenicRouteStrategy implements RouteOptimizationStrategy
+
+    class RouteOptimizerContext <<Context>> {
+        - strategy: RouteOptimizationStrategy
+        + setStrategy(newStrategy: RouteOptimizationStrategy)
+        + executeOptimization(...): OptimizedPlan
+    }
+
+    RouteOptimizerContext o-- RouteOptimizationStrategy
+}
+
+package "Student 2: Observer Pattern" #EAECEE {
+    interface TripObserver {
+        + onTripEvent(event: TripEvent): void
+        + getObserverId(): String
+    }
+
+    interface TripSubject {
+        + subscribe(type: TripEventType, obs: TripObserver): void
+        + unsubscribe(type: TripEventType, obs: TripObserver): void
+        + notifyObservers(event: TripEvent): void
+    }
+
+    class TripNotificationSubject implements TripSubject {
+        - registry: ConcurrentMap<TripEventType, List<TripObserver>>
+    }
+
+    class EmailNotificationListener implements TripObserver
+    class SmsNotificationListener implements TripObserver
+    class MobilePushNotificationListener implements TripObserver
+    class PriceDropAlertTrackerListener implements TripObserver
+
+    TripNotificationSubject o-- TripObserver
+}
+
+' Integration relations
+TripItineraryBuilder --> RouteOptimizerContext : uses optimized items
+TravelBookingFacade ..> TripNotificationSubject : triggers notifications
+
+@enduml
