@@ -12,7 +12,7 @@
 * **Student 2:** Miras Kadrinov (Group: SE-2531)  
   *Implemented Patterns:* Adapter, Strategy, Observer  
 
-**INSTRUCTOR:** Aruzhan Mektapbayeva / Sandugash Tulaeva  
+**INSTRUCTOR:** Aruzhan Mektapbayeva 
 **SEMESTER:** Fall 2026  
 
 ---
